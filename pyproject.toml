@@ -1,0 +1,29 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "plex-mcp"
+version = "0.1.0"
+description = "A self-hosted MCP server for reading and editing Plex Media Server metadata, collections, and playlists."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "mcp>=2.0,<3",
+    "plexapi>=4.17,<5",
+    "pydantic>=2.12",
+    "pydantic-settings>=2.7",
+    "uvicorn>=0.31",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "anyio>=4.9"]
+
+[project.scripts]
+plex-mcp = "plex_mcp.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/plex_mcp"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
