@@ -7,12 +7,4 @@ dist/
 build/
 *.egg-info/
 .pytest_cache/
-/.vs/plex-mcp/CopilotIndices/17.14.1091.29919/CodeChunks.db-shm
-/.vs/plex-mcp/CopilotIndices/17.14.1091.29919/CodeChunks.db-wal
-/.vs/plex-mcp/CopilotIndices/17.14.1091.29919/SemanticSymbols.db-shm
-/.vs/plex-mcp/CopilotIndices/17.14.1091.29919/SemanticSymbols.db-wal
-/.vs/plex-mcp/FileContentIndex/995e8a4d-2717-4aae-8cb3-c4b4cd4a7ca9.vsidx
-/.vs/plex-mcp/FileContentIndex/f45c038d-5c30-4fc0-ba5a-9be681feb9a4.vsidx
-/.vs/plex-mcp/FileContentIndex/1df838dc-6e33-4145-942c-a0a497c2a9b8.vsidx
-/.vs/plex-mcp/FileContentIndex/0d153437-df19-40f1-b7a8-9e81a662e8eb.vsidx
-/.vs/plex-mcp/FileContentIndex/66de2182-f5a9-4b17-b6a6-674f6852254d.vsidx
+.vs/
