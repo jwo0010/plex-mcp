@@ -6,7 +6,7 @@ from pydantic import Field
 
 from plex_mcp import __version__
 from plex_mcp.plex import detail, summarize, summarize_many
-from plex_mcp.tools._common import READ, Filters, Library, LibType, RatingKey, Sort, ToolDeps
+from plex_mcp.tools._common import READ, Filters, Library, LibType, RatingKey, Sort, ToolDeps, page_info
 
 
 def register(deps: ToolDeps) -> None:
@@ -61,11 +61,15 @@ def register(deps: ToolDeps) -> None:
         libtype: LibType = None,
         filters: Filters = None,
         sort: Sort = None,
-        limit: Annotated[int, Field(ge=1, le=1000)] = 50,
+        limit: Annotated[
+            int, Field(ge=1, le=1000, description="Page size. Capped by the server's max_results setting.")
+        ] = 50,
         offset: Annotated[int, Field(ge=0, description="Skip this many results (for paging).")] = 0,
     ) -> dict[str, Any]:
         """Search one library by title, type, and advanced Plex filters, returning compact summaries
-        with rating_keys. Use this to find items before editing them or adding them to collections/playlists."""
+        with rating_keys. Use this to find items before editing them or adding them to collections/playlists.
+        Results are paged: 'total' is the full match count, and when 'has_more' is true, call again with
+        offset=next_offset to get the rest."""
         section = ctx.section(library)
         limit = deps.limit(limit)
         results = section.search(
@@ -76,10 +80,11 @@ def register(deps: ToolDeps) -> None:
             maxresults=limit,
             container_start=offset or None,
         )
+        total = getattr(results, "totalSize", None)  # read before slicing: a plain list loses it
+        results = results[:limit]
         return {
             "library": section.title,
-            "offset": offset,
-            "returned": len(results),
+            **page_info(len(results), offset, limit, total),
             "results": summarize_many(results),
         }
 
@@ -123,7 +128,8 @@ def register(deps: ToolDeps) -> None:
         offset: Annotated[int, Field(ge=0)] = 0,
     ) -> dict[str, Any]:
         """List what is inside an item: seasons/episodes of a show, albums/tracks of an artist,
-        or the items in a collection or playlist (in order)."""
+        or the items in a collection or playlist (in order). Paged like search_library: follow next_offset
+        while has_more is true."""
         obj = ctx.item(rating_key)
         kind = obj.TYPE
         if kind in {"collection", "playlist"}:
@@ -132,12 +138,11 @@ def register(deps: ToolDeps) -> None:
             children = obj.fetchItems(f"/library/metadata/{obj.ratingKey}/allLeaves")
         else:
             children = obj.fetchItems(f"/library/metadata/{obj.ratingKey}/children")
-        total = len(children)
-        page = children[offset : offset + deps.limit(limit)]
+        limit = deps.limit(limit)
+        page = children[offset : offset + limit]
         return {
             "parent": summarize(obj),
-            "total": total,
-            "offset": offset,
+            **page_info(len(page), offset, limit, len(children)),
             "children": summarize_many(page),
         }
 
@@ -192,12 +197,23 @@ def register(deps: ToolDeps) -> None:
     def list_collections(
         library: Library,
         query: Annotated[str | None, Field(description="Partial collection title.")] = None,
-        limit: Annotated[int, Field(ge=1, le=1000)] = 100,
+        limit: Annotated[
+            int, Field(ge=1, le=1000, description="Page size. Capped by the server's max_results setting.")
+        ] = 100,
+        offset: Annotated[int, Field(ge=0, description="Skip this many collections (for paging).")] = 0,
     ) -> dict[str, Any]:
-        """List collections in a library (regular and smart), with rating_keys and item counts."""
+        """List collections in a library (regular and smart), with rating_keys and item counts.
+        Paged like search_library: follow next_offset while has_more is true."""
         section = ctx.section(library)
-        results = section.search(title=query, libtype="collection", maxresults=deps.limit(limit))
-        return {"library": section.title, "collections": summarize_many(results)}
+        limit = deps.limit(limit)
+        results = section.search(title=query, libtype="collection", maxresults=limit, container_start=offset or None)
+        total = getattr(results, "totalSize", None)
+        results = results[:limit]
+        return {
+            "library": section.title,
+            **page_info(len(results), offset, limit, total),
+            "collections": summarize_many(results),
+        }
 
     @mcp.tool(title="List playlists", annotations=READ)
     def list_playlists(

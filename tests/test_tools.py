@@ -35,6 +35,38 @@ async def test_search_library_by_title_and_filters(call: ToolCaller) -> None:
     assert newest["results"][0]["title"] == "Heat"
 
 
+async def test_search_library_paging_reports_total(call: ToolCaller) -> None:
+    first = await call("search_library", library="Movies", sort="addedAt:desc", limit=2)
+    assert [r["title"] for r in first["results"]] == ["Heat", "Aliens"]
+    assert (first["total"], first["returned"], first["has_more"], first["next_offset"]) == (3, 2, True, 2)
+
+    rest = await call("search_library", library="Movies", sort="addedAt:desc", limit=2, offset=first["next_offset"])
+    assert [r["title"] for r in rest["results"]] == ["Alien"]
+    assert (rest["total"], rest["has_more"], rest["next_offset"]) == (3, False, None)
+
+
+async def test_max_results_caps_page_but_paging_still_reaches_everything(make_settings) -> None:
+    async with Client(build_server(make_settings(max_results=2))) as client:
+        caller = ToolCaller(client)
+        page = await caller("search_library", library="Movies", limit=500)
+        assert page["limit"] == 2 and page["returned"] == 2
+        assert page["total"] == 3 and page["has_more"] is True
+
+        episodes = await caller("list_children", rating_key=201, leaves=True, limit=500)
+        assert (episodes["total"], episodes["returned"], episodes["has_more"]) == (2, 2, False)
+
+
+async def test_list_collections_paging(call: ToolCaller) -> None:
+    for title, keys in (("A", [101]), ("B", [102]), ("C", [103])):
+        await call("create_collection", library="Movies", title=title, rating_keys=keys)
+    first = await call("list_collections", library="Movies", limit=2)
+    assert len(first["collections"]) == 2
+    assert (first["total"], first["has_more"], first["next_offset"]) == (3, True, 2)
+    rest = await call("list_collections", library="Movies", limit=2, offset=2)
+    assert [c["title"] for c in rest["collections"]] == ["C"]
+    assert rest["has_more"] is False
+
+
 async def test_search_library_unknown_library(call: ToolCaller) -> None:
     with pytest.raises(ToolFailed, match="No library named"):
         await call("search_library", library="Anime")

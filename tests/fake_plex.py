@@ -175,12 +175,16 @@ class FakePlexState:
         return root
 
     # --------------------------------------------------------------- request handling
-    def handle(self, method: str, raw_path: str) -> tuple[int, ET.Element | None]:
+    def handle(self, method: str, raw_path: str, headers: dict[str, str] | None = None) -> tuple[int, ET.Element | None]:
         with self.lock:
             self.requests.append((method, unquote(raw_path)))
             url = urlparse(raw_path)
             path = url.path.rstrip("/") or "/"
             q = {k: v[-1] for k, v in parse_qs(url.query, keep_blank_values=True).items()}
+            # plexapi sends paging as headers; accept either form like Plex does.
+            for name in ("X-Plex-Container-Start", "X-Plex-Container-Size"):
+                if headers and name in headers and name not in q:
+                    q[name] = headers[name]
             parts = path.strip("/").split("/")
             return self._route(method, path, parts, q)
 
@@ -477,7 +481,7 @@ class FakePlexServer:
                 length = int(self.headers.get("Content-Length") or 0)
                 if length:
                     self.rfile.read(length)
-                status, element = state.handle(self.command, self.path)
+                status, element = state.handle(self.command, self.path, dict(self.headers.items()))
                 body = ET.tostring(element, encoding="utf-8") if element is not None else b""
                 self.send_response(status)
                 self.send_header("Content-Type", "text/xml;charset=utf-8")

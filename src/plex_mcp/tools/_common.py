@@ -59,3 +59,20 @@ class ToolDeps:
 
     def limit(self, requested: int) -> int:
         return max(1, min(requested, self.settings.max_results))
+
+
+def page_info(returned: int, offset: int, limit: int, total: int | None) -> dict[str, Any]:
+    """Paging fields shared by list/search tools, so agents can tell when a result set is incomplete.
+
+    `limit` is the effective page size after PLEX_MCP_MAX_RESULTS is applied, which may be lower than requested.
+    If Plex didn't report a total, a full page is treated as a sign that more results may exist.
+    """
+    has_more = offset + returned < total if total is not None else returned >= limit
+    return {
+        "total": total,
+        "offset": offset,
+        "limit": limit,
+        "returned": returned,
+        "has_more": has_more,
+        "next_offset": offset + returned if has_more else None,
+    }

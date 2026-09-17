@@ -22,7 +22,7 @@ Built on the official MCP Python SDK **v2** and [python-plexapi](https://github.
 | | `list_children` | Seasons/episodes, albums/tracks, or the ordered contents of a collection or playlist. |
 | | `recently_added` | Newest items, per library or across all. |
 | | `list_filter_options` | Valid filter fields, sort fields, and existing values (e.g. every genre). |
-| | `list_collections`, `list_playlists` | Find collections and playlists by name. |
+| | `list_collections`, `list_playlists` | Find collections (paged) and playlists by name. |
 | | `find_matches`, `list_artwork` | Candidate agent matches; available posters/backgrounds. |
 | **Metadata** | `edit_metadata` | Title, sort title, summary, tagline, studio, content rating, dates, ratings, edition, track/disc numbers. One request; fields locked by default. |
 | | `edit_tags` | Add/remove genres, labels, collections, moods, styles, directors, writers, and more across many items. |
@@ -116,7 +116,7 @@ Settings come from environment variables or `.env` (see `.env.example`). Pass `-
 | `PLEX_MCP_READ_ONLY` | `false` | Only register read tools. Also `--read-only`. |
 | `PLEX_MCP_ALLOW_DELETE` | `true` | `false` hides the delete tools. |
 | `PLEX_MCP_ALLOWED_LIBRARIES` | all | Comma-separated titles or IDs the server may see or change. |
-| `PLEX_MCP_MAX_RESULTS` | `200` | Cap for list/search results. |
+| `PLEX_MCP_MAX_RESULTS` | `200` | Largest page a list/search tool returns. Larger result sets are still reachable: responses include `total`, `has_more`, and `next_offset`. |
 | `PLEX_MCP_LOG_LEVEL` | `INFO` | |
 | `PLEX_MCP_LOG_FILE` | *(none)* | The installer sets `logs\plex-mcp.log`. |
 

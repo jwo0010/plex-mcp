@@ -133,3 +133,12 @@ async def test_stdio_transport(fake_plex) -> None:
     async with Client(stdio_client(params)) as client:
         result = await client.call_tool("search_library", {"library": "Movies", "query": "heat"})
         assert [r["title"] for r in result.structured_content["results"]] == ["Heat"]
+
+
+def test_page_info_without_plex_total() -> None:
+    from plex_mcp.tools._common import page_info
+
+    assert page_info(returned=50, offset=0, limit=50, total=None)["has_more"] is True
+    tail = page_info(returned=12, offset=50, limit=50, total=None)
+    assert (tail["has_more"], tail["next_offset"]) == (False, None)
+    assert page_info(returned=0, offset=0, limit=50, total=0)["has_more"] is False
